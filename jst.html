@@ -125,7 +125,7 @@
       // 秒数とミリ秒の切り替わりをJST Clockに同期
       timeDisplay.textContent = `${hours}:${minutes}:${seconds}.${milliseconds}`;
 
-      // Flashエフェクト
+      // Flashの実装
       if ((milliseconds > 887 && milliseconds < 960) && flashToggle.checked) {
         document.body.style.backgroundColor = "blue";
       } else {
