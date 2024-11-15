@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JST Clock msec</title>
+  <title>JST Sync Clock</title>
   <style>
     body {
       font-family: "Times New Roman", serif;
@@ -58,9 +58,9 @@
       margin-left: 10px;
     }
 
-    .fallback-message {
-      font-size: 2em;
-      color: red;
+    .error-message {
+      font-size: 1em;
+      color: black;
       margin-top: 1em;
     }
   </style>
@@ -80,8 +80,8 @@
         <input type="checkbox" id="flashToggle">
       </label>
     </div>
-    <div id="fallbackMessage" class="fallback-message" style="display: none;">
-      ◆ The Terminal Time
+    <div id="errorMessage" class="error-message" style="display: none;">
+      Error: Failed to get time from JST Clock
     </div>
   </div>
 
@@ -89,11 +89,10 @@
     let offset = 0; // 手動調整のオフセット
     let jstOffset = 0; // JST基準との差分補正
     let correction = 0; // 遅延補正
-    let fallback = false; // Fallbackモードのフラグ
     const timeDisplay = document.getElementById('timeDisplay');
     const offsetDisplay = document.getElementById('offset');
     const flashToggle = document.getElementById('flashToggle');
-    const fallbackMessage = document.getElementById("fallbackMessage");
+    const errorMessage = document.getElementById("errorMessage");
 
     // JST Clockの地域標準時を取得
     async function fetchJST() {
@@ -118,12 +117,12 @@
         // 遅延補正
         const fetchTime = Date.now();
         correction = fetchTime - jst.getTime();
-        fallback = false; // 正常に取得できた場合はFallbackを解除
-        fallbackMessage.style.display = "none";
+        errorMessage.style.display = "none"; // エラーを非表示
       } catch (error) {
-        console.warn("JST Clockの取得に失敗しました。端末時刻を使用します。");
-        fallback = true; // Fallbackモードを有効化
-        fallbackMessage.style.display = "block";
+        console.error("JST Clockの取得に失敗しました:", error);
+        timeDisplay.textContent = "Error";
+        errorMessage.style.display = "block"; // エラーメッセージを表示
+        throw new Error("Failed to fetch JST Clock");
       }
     }
 
@@ -163,8 +162,12 @@
 
     // 初期化と同期
     async function initializeClock() {
-      await fetchJST(); // JSTを取得
-      setInterval(updateDisplay, 10); // 表示を更新
+      try {
+        await fetchJST(); // JSTを取得
+        setInterval(updateDisplay, 10); // 表示を更新
+      } catch (error) {
+        console.warn("初期化中にエラーが発生しました。");
+      }
     }
 
     initializeClock();
