@@ -79,26 +79,34 @@
 
   <script>
     let offset = 0;
-    let serverTimeOffset = 0; // Server and local time difference in ms
+    let jstOffset = 0; // Local time and JST difference in ms
     const timeDisplay = document.getElementById('timeDisplay');
     const offsetDisplay = document.getElementById('offset');
     const flashToggle = document.getElementById('flashToggle');
 
-    // Function to synchronize with server time
-    async function synchronizeWithServer() {
+    // Fetch JST time from the NICT HTML page
+    async function fetchJSTFromNICT() {
       try {
-        const response = await fetch("https://worldtimeapi.org/api/timezone/Asia/Tokyo"); // Example API
-        const data = await response.json();
-        const serverTime = new Date(data.utc_datetime).getTime();
-        const localTime = Date.now();
-        serverTimeOffset = serverTime - localTime;
+        const response = await fetch("https://www.nict.go.jp/JST/JST5.html", { mode: "no-cors" });
+        const text = await response.text();
+
+        // Parse the HTML to extract JST
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+        const timeString = doc.querySelector(".time").innerText; // Assuming the time is in a specific element
+        const [hours, minutes, seconds] = timeString.split(":").map(Number);
+
+        // Calculate JST based on the extracted values
+        const now = new Date();
+        const jst = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, seconds);
+        jstOffset = jst.getTime() - now.getTime();
       } catch (error) {
-        console.error("Failed to synchronize with server time:", error);
+        console.error("Failed to fetch JST from NICT:", error);
       }
     }
 
     function updateDisplay() {
-      const now = new Date(Date.now() + serverTimeOffset + offset);
+      const now = new Date(Date.now() + jstOffset + offset);
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
@@ -107,7 +115,7 @@
       timeDisplay.textContent = `${hours}:${minutes}:${seconds}.${String(milliseconds).padStart(3, '0')}`;
 
       // Flash background when milliseconds fall within specified range
-      if ((milliseconds > 886 && milliseconds < 960) && flashToggle.checked) {
+      if ((milliseconds >= 900 || milliseconds < 50) && flashToggle.checked) {
         document.body.style.backgroundColor = "blue";
       } else {
         document.body.style.backgroundColor = "white";
@@ -129,8 +137,8 @@
       }
     }
 
-    // Synchronize with server time and start interval
-    synchronizeWithServer().then(() => {
+    // Synchronize with NICT JST and start interval
+    fetchJSTFromNICT().then(() => {
       setInterval(updateDisplay, 3);
     });
   </script>
